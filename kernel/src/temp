@@ -1,0 +1,48 @@
+void nop() {
+    asm volatile ("nop");
+}
+
+uint32_t backColor    = 0x212121;
+uint32_t dockColor    = 0x0F0F0F;
+uint32_t toolBarColor = 0x0B0B0B;
+
+struct version {
+    uint32_t major;   // Major   #.-.-
+    uint32_t version; // Version -.#.-
+    uint32_t minor;   // Minor   -.-.#
+    bool isHalfYear;  // 1 (true) -- 2 (false)
+    char* versionist; // What is the thing that version_t used?
+};
+
+typedef struct version version_t;
+
+struct BreezeOS_TransferData_List_MetaData_Structure {
+    char* os_name;     // Probably will be "BreezeOS"
+    version_t version; // Version of BreezeOS
+
+};
+
+typedef struct BreezeOS_TransferData_List_MetaData_Structure BreezeOSTransferListMetaDataStruct_t;
+
+extern "C" void kmain() {  
+    if (LIMINE_BASE_REVISION_SUPPORTED == false) {
+        hcf();
+    }
+
+    for (size_t i = 0; &__init_array[i] != __init_array_end; i++) {
+        __init_array[i]();
+    }
+
+    if (framebuffer_request.response == nullptr
+     || framebuffer_request.response->framebuffer_count < 1) {
+        hcf();
+    }
+
+    DrawSquare(0, 0, gFramebuffer->width, gFramebuffer->height, backColor);
+    DrawSquare(0, 0, 128, gFramebuffer->height, dockColor);
+    DrawSquare(0, 0, gFramebuffer->width, 32, toolBarColor);
+
+    font_str("BreezeOS Desktop - Alpha", gFramebuffer->width-200, gFramebuffer->height-16, backColor*2);
+
+    hcf();
+}

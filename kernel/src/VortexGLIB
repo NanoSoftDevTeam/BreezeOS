@@ -1,0 +1,25 @@
+#pragma once
+
+#include <limine.h>
+#include <font.h>
+#include <stddef.h>
+
+// Min function
+template<typename T>
+T min(const T& a, const T& b) {
+    return (a < b) ? a : b;
+}
+
+// Max function
+template<typename T>
+T max(const T& a, const T& b) {
+    return (a > b) ? a : b;
+}
+
+extern struct limine_framebuffer *gFramebuffer;
+
+void InitializeFramebuffer(struct limine_framebuffer *framebuffer);
+void putPx(uint64_t x, uint64_t y, uint32_t color);
+void DrawSquare(uint64_t startX, uint64_t startY, uint64_t endX, uint64_t endY, uint32_t color);
+void font_char(char c, size_t x, size_t y, uint32_t color);
+void font_str(const char *s, size_t x, size_t y, uint32_t color);
