@@ -3,12 +3,12 @@
 struct IDT64 {
     uint16_t offset_low;
     uint16_t selector;
-    uint8_t  zero;
-    uint8_t  type_attr;
-    uint16_t offset_middle;
+    uint8_t ist;
+    uint8_t  types_attr;
+    uint16_t offset_mid;
     uint32_t offset_high;
-    uint32_t reserved;
-} __attribute__((packed));
+    uint32_t zero = 0;
+};
 
 #define IDT_TYPE_INTERRUPT 0xE
 #define IDT_TYPE_TRAP      0xF
@@ -24,13 +24,12 @@ extern uint64_t isr1;
 extern "C" void LoadIDT();
 
 void set_idt_entry(int index, uint64_t offset) {
-    _idt[index].offset_low = (uint16_t)(offset & 0xFFFF);
-    _idt[index].offset_middle = (uint16_t)((offset >> 16) & 0xFFFF);
-    _idt[index].offset_high = (uint32_t)((offset >> 32) & 0xFFFFFFFF);
-    _idt[index].selector = 0x08;  // Adjust as needed for your code segment
-    _idt[index].type_attr = IDT_TYPE_INTERRUPT | IDT_ATTR_PRESENT | IDT_ATTR_DPL0;
-    _idt[index].zero = 0;
-    _idt[index].reserved = 0;
+	_idt[index].offset_low = (uint16_t)(((uint64_t)&isr1 & 0x000000000000ffff));
+	_idt[index].offset_mid = (uint16_t)(((uint64_t)&isr1 & 0x00000000ffff0000) >> 16);
+	_idt[index].offset_high = (uint32_t)(((uint64_t)&isr1 & 0xffffffff00000000) >> 32);
+	_idt[index].ist = 0;
+	_idt[index].selector = 0x08;
+	_idt[index].types_attr = 0x8e;
 }
 
 #define PIC1_COMMAND 0x20
@@ -61,14 +60,11 @@ void RemapPic() {
     outb(PIC2_DATA, a2);
 }
 
-
 void InitializeIDT() {
     set_idt_entry(1, isr1);
 
-    RemapPic();
-
-    outb(0x21, 0xFD); // Allow only timer interrupt
-    outb(0xA1, 0xFF); // Disable all interrupts on PIC2
+    outb(0x21, 0xFD);
+    outb(0xA1, 0xFF);
     LoadIDT();
 }
 

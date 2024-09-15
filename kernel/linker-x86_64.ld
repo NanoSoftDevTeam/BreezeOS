@@ -28,7 +28,6 @@ SECTIONS
 
     .idt : ALIGN(0x1000) {
         _idt = .;
-        *(.idt)
         . = . + 0x1000;
     }
 

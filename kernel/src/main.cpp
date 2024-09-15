@@ -294,13 +294,14 @@ size_t getstrlength(const char *str) {
 }
 
 char* quoteString(const char* input) {
-    static char buffer[2];
+    static char buffer[256];
     
     size_t inputLength = getstrlength(input);
     size_t totalLength = inputLength + 2;
     
     if (totalLength >= sizeof(buffer)) {
         writeln("DebugERROR: 0x00B001");
+        return NULL;
     }
     
     buffer[0] = '\"';
