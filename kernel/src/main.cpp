@@ -4,7 +4,9 @@
 #include <VortexGLIB>
 //#include <VortexUILib> // UI Library
 #include <io.h>
-#include <IDT.h>
+#include <cstdarg>
+#include <ATA.h>
+#include <FAT32.h>
 
 using namespace std;
 
@@ -359,6 +361,120 @@ void Draw() {
     font_str("BreezeOS Desktop - Alpha", gFramebuffer->width-200, gFramebuffer->height-16, backColor*2);
 }
 
+void putchar(char ch) {
+    outb(0xE9, ch);
+}
+
+void puts(char *ch) {
+    while (*ch++) {
+        outb(0xE9, *ch);
+    }
+}
+
+// Helper function to convert an integer to a hexadecimal string
+void int_to_hex(uint32_t value, char* buffer, int width, int precision) {
+    // We need a buffer to store the hexadecimal digits
+    char temp[16];
+    int i = 0;
+
+    // Convert integer to hexadecimal string
+    do {
+        int digit = value % 16;
+        temp[i++] = (digit < 10) ? (digit + '0') : (digit - 10 + 'A');
+        value /= 16;
+    } while (value > 0);
+
+    // Add leading zeros for precision
+    while (i < precision) {
+        temp[i++] = '0';
+    }
+
+    // Reverse the string
+    int j;
+    for (j = 0; j < i / 2; j++) {
+        char c = temp[j];
+        temp[j] = temp[i - j - 1];
+        temp[i - j - 1] = c;
+    }
+
+    // Add padding for width
+    int padding = width - i;
+    if (padding > 0) {
+        for (j = 0; j < padding; j++) {
+            *buffer++ = ' ';
+        }
+    }
+
+    // Copy the hexadecimal string to the buffer
+    for (j = 0; j < i; j++) {
+        *buffer++ = temp[j];
+    }
+
+    *buffer = '\0';  // Null-terminate the string
+}
+
+// Custom printf function
+void printf_serial(const char* format, ...) {
+    const char* p;
+    va_list args;
+    va_start(args, format);
+
+    for (p = format; *p; p++) {
+        if (*p != '%') {
+            putchar(*p);
+            continue;
+        }
+
+        // Handle '%'
+        p++;
+
+        // Default width and precision
+        int width = 0;
+        int precision = 0;
+        int is_precision_set = 0;
+
+        // Parse width
+        while (*p >= '0' && *p <= '9') {
+            width = width * 10 + (*p - '0');
+            p++;
+        }
+
+        // Parse precision
+        if (*p == '.') {
+            p++;
+            is_precision_set = 1;
+            precision = 0;
+            while (*p >= '0' && *p <= '9') {
+                precision = precision * 10 + (*p - '0');
+                p++;
+            }
+        }
+
+        // Handle format specifiers
+        if (*p == 'x') {
+            uint32_t value = va_arg(args, uint32_t);
+            char buffer[64];
+            int_to_hex(value, buffer, width, is_precision_set ? precision : 1);
+            // Output the buffer
+            for (char* b = buffer; *b; b++) {
+                putchar(*b);
+            }
+        } else {
+            putchar('%');
+            putchar(*p);
+        }
+    }
+
+    va_end(args);
+}
+
+void printSectorData(uint8_t* buffer, size_t data_size) {
+    for (int i = 0; i < (int)data_size*FS_SECT_SIZE; i++) {
+        if (i%25==0) puts("\n");
+	printf_serial("%02x ", buffer[i]);
+    }
+}
+
 __attribute__((noreturn)) extern "C" void kmain() {
     if (LIMINE_BASE_REVISION_SUPPORTED == false) {
         hcf();
@@ -413,19 +529,11 @@ __attribute__((noreturn)) extern "C" void kmain() {
     print_TDLMS_t_table(BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER);
     
     bool shift = false;
+    
+    initialize_fat32();
 
-    InitializeIDT();
-
-    while (1) {
-        if (inb(0x60) == 0x2A) {
-            shift = true;
-        }
-        if (inb(0x60) == 0x1D && shift == true) {
-            shift = false;
-            TDLMS_TABLE_APP(BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER);
-            Draw();
-        }
-    }
+    uint8_t data[] = "Data Test";
+    create_file("FileName.txt", data, sizeof(data));
 
     hcf();
 }

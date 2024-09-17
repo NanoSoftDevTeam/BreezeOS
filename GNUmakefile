@@ -256,4 +256,5 @@ distclean:
 	rm -rf iso_root *.iso *.hdd kernel-deps limine ovmf
 
 run:
-	qemu-system-x86_64 -m 1G -hda $(IMAGE_NAME).iso -debugcon stdio
+#	qemu-system-x86_64 -m 1G -hda $(IMAGE_NAME).iso -debugcon stdio
+	qemu-system-x86_64 -m 1G -drive file=$(IMAGE_NAME).iso,format=raw,if=ide -debugcon stdio

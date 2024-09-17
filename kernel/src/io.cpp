@@ -14,3 +14,13 @@ uint8_t inb(uint16_t port) {
 void io_wait() {
     asm volatile ("outb %%al, $0x80" : : "a"(0));
 }
+
+uint16_t inw(uint16_t port) {
+    uint16_t result;
+    asm volatile("inw %1, %0" : "=a"(result) : "dN"(port));
+    return result;
+}
+
+void outw(uint16_t port, uint16_t data) {
+    asm volatile("outw %1, %0" : : "dN"(port), "a"(data));
+}
