@@ -6,7 +6,7 @@
 #include <io.h>
 #include <cstdarg>
 #include <ATA.h>
-#include <FAT32.h>
+#include <NSFS.h>
 
 using namespace std;
 
@@ -469,10 +469,40 @@ void printf_serial(const char* format, ...) {
 }
 
 void printSectorData(uint8_t* buffer, size_t data_size) {
-    for (int i = 0; i < (int)data_size*FS_SECT_SIZE; i++) {
+    for (int i = 0; i < 512; i++) {
         if (i%25==0) puts("\n");
 	printf_serial("%02x ", buffer[i]);
     }
+}
+
+void my_strncpy(uint8_t *dest, const char *src, size_t n) {
+    size_t i;
+
+    // Copy characters from src to dest until we reach n characters or the end of src
+    for (i = 0; i < n && src[i] != '\0'; i++) {
+        dest[i] = (uint8_t)src[i];
+    }
+
+    // If we haven't copied n characters, pad the remaining space with null bytes
+    for (; i < n; i++) {
+        dest[i] = 0;
+    }
+}
+
+char *strncpy(char *dest, const char *src, size_t n) {
+    size_t i;
+    
+    // Copy characters from src to dest, up to n characters
+    for (i = 0; i < n && src[i] != '\0'; i++) {
+        dest[i] = src[i];
+    }
+    
+    // If src is shorter than n, pad the rest of dest with '\0'
+    for (; i < n; i++) {
+        dest[i] = '\0';
+    }
+    
+    return dest;
 }
 
 __attribute__((noreturn)) extern "C" void kmain() {
@@ -493,47 +523,16 @@ __attribute__((noreturn)) extern "C" void kmain() {
 
     Draw();
 
-    BreezeOSTransferListMetaDataStruct_t BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER;
+    uint8_t test_buffer[512] = "Hello, World! from a file"; // Buffer to hold the string
 
-    version_t VERSION_INITIALIZER;
-    video_t   VIDEO_INITIALIZER;
+    CreateFile("filename", test_buffer);
 
-    VERSION_INITIALIZER.major = 1;
-    VERSION_INITIALIZER.version = 0;
-    VERSION_INITIALIZER.minor = 0;
-    VERSION_INITIALIZER.isHalfYear = false;
-    VERSION_INITIALIZER.version_user = "BreezeOS";
-    VERSION_INITIALIZER.other_info = "ALPHA";
+    uint8_t test_buffer2[512] = "Hello, World! from another file"; // Buffer to hold the string
 
-    VIDEO_INITIALIZER.x = gFramebuffer->width;
-    VIDEO_INITIALIZER.y = gFramebuffer->height;
+    CreateFile("secfile!", test_buffer2);
 
-    uint64_t x__ = 0;
-    uint64_t y__ = 0;
-
-    for (int i = 0; i <= VIDEO_INITIALIZER.x; i++) {
-        x__++;
-    }
-
-    for (int i = 0; i <= VIDEO_INITIALIZER.y; i++) {
-        y__++;
-    }
-
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.os_name = "BreezeOS";
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.version = VERSION_INITIALIZER;
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.framebuffer = gFramebuffer;
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.res = VIDEO_INITIALIZER;
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.resx = x__;
-    BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER.resy = y__;
-
-    print_TDLMS_t_table(BreezeOS_TRANSFER_DATA_LIST_METADATA_STRUCT_T_INITIALIZER);
-    
-    bool shift = false;
-    
-    initialize_fat32();
-
-    uint8_t data[] = "Data Test";
-    create_file("FileName.txt", data, sizeof(data));
+    uint8_t* test_buffer_two = ReadFile("filename");
+    printSectorData(test_buffer2, 512);
 
     hcf();
 }
